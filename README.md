@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# khathathorn-jongkohpo
 
-## Getting Started
+Next.js project with basic CI/CD + commit quality gates.
 
-First, run the development server:
+## Local development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Pre-commit checks (Husky)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+This project uses `husky` + `lint-staged`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+On every commit:
 
-## Learn More
+- `prettier --write` runs on staged files (auto format)
+- `eslint --fix --max-warnings=0` runs on staged JS/TS files
 
-To learn more about Next.js, take a look at the following resources:
+If checks fail, commit is blocked.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Absolute import enforcement
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+ESLint blocks parent-relative imports in `src/**`:
 
-## Deploy on Vercel
+- disallowed: `../...`
+- expected: `@/...`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Example:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```ts
+// ✅
+import Button from "@/components/Button";
+
+// ❌
+import Button from "../components/Button";
+```
+
+## CI/CD workflows
+
+### CI (`.github/workflows/ci.yml`)
+
+Runs on:
+
+- Pull requests to `main`
+- Pushes to non-`main` branches
+
+Checks:
+
+- `pnpm lint`
+- `pnpm format:check`
+- `pnpm build`
+
+### CD (`.github/workflows/cd.yml`)
+
+Runs only when a PR to `main` is merged.
+
+- Re-runs lint/format/build checks
+- Runs a deploy placeholder step
+
+Replace the deploy placeholder with your real deployment command.
+
+## Main branch guard
+
+`main-guard` workflow fails if a commit on `main` is not associated with a PR.
+
+For strict blocking of direct pushes, enable GitHub branch protection/ruleset:
+
+1. Require pull request before merging
+2. Require status checks to pass (`CI` and `Main Guard`)
+3. Restrict who can push to `main` (optional but recommended)
